@@ -3,59 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simple Chat</title>
+<title>Personal 1-to-1 Chat</title>
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #f0f0f0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-    }
-    #chat-container {
-        background: white;
-        padding: 20px;
-        width: 350px;
-        height: 500px;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.2);
-        display: flex;
-        flex-direction: column;
-    }
-    #messages {
-        flex: 1;
-        overflow-y: auto;
-        margin-bottom: 10px;
-        border: 1px solid #ddd;
-        padding: 10px;
-        border-radius: 5px;
-        background: #fafafa;
-    }
-    .message {
-        margin-bottom: 8px;
-    }
-    .message span {
-        font-weight: bold;
-    }
-    #input-area {
-        display: flex;
-    }
-    #input-area input {
-        flex: 1;
-        padding: 10px;
-        border-radius: 5px;
-        border: 1px solid #ddd;
-    }
-    #input-area button {
-        padding: 10px 15px;
-        margin-left: 5px;
-        border-radius: 5px;
-        border: none;
-        background: #007bff;
-        color: white;
-        cursor: pointer;
-    }
+body { font-family: Arial; background: #f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; }
+#chat-container { background:white; width:400px; height:600px; display:flex; flex-direction:column; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2); }
+#messages { flex:1; padding:10px; overflow-y:auto; border-bottom:1px solid #ddd; }
+.message { margin-bottom:10px; }
+.message span { font-weight:bold; }
+#input-area { display:flex; padding:10px; }
+#input-area input { flex:1; padding:10px; border-radius:5px; border:1px solid #ddd; }
+#input-area button { padding:10px; margin-left:5px; border:none; border-radius:5px; background:#007bff; color:white; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -68,31 +25,49 @@
     </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 <script>
+    // 1️⃣ Firebase Config — apna Firebase project se ye info lo
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let username = prompt("Enter your name:");
     const messagesDiv = document.getElementById('messages');
     const input = document.getElementById('message-input');
 
+    // 2️⃣ Send message
     function sendMessage() {
         const text = input.value.trim();
         if(text === '') return;
+        db.ref('chats').push({
+            name: username,
+            message: text,
+            timestamp: Date.now()
+        });
+        input.value = '';
+    }
 
+    // 3️⃣ Listen for messages
+    db.ref('chats').on('child_added', snapshot => {
+        const data = snapshot.val();
         const messageEl = document.createElement('div');
         messageEl.classList.add('message');
-        messageEl.innerHTML = `<span>You:</span> ${text}`;
+        messageEl.innerHTML = `<span>${data.name}:</span> ${data.message}`;
         messagesDiv.appendChild(messageEl);
-
-        // Auto reply from friend (simple simulation)
-        setTimeout(() => {
-            const replyEl = document.createElement('div');
-            replyEl.classList.add('message');
-            replyEl.innerHTML = `<span>Friend:</span> ${text.split('').reverse().join('')}`;
-            messagesDiv.appendChild(replyEl);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }, 500);
-
-        input.value = '';
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
+    });
 
     input.addEventListener("keypress", function(e) {
         if(e.key === "Enter") sendMessage();
